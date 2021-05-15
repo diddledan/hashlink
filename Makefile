@@ -9,7 +9,7 @@ INSTALL_INCLUDE_DIR ?= $(PREFIX)/include
 
 LIBS=fmt sdl ssl openal ui uv mysql
 
-CFLAGS = -Wall -O3 -I src -msse2 -mfpmath=sse -std=c11 -I include -I include/pcre -I include/mikktspace -I include/minimp3 -D LIBHL_EXPORTS
+CFLAGS = -Wall -O3 -I src -std=c11 -I include -I include/pcre -I include/mikktspace -I include/minimp3 -D LIBHL_EXPORTS
 LFLAGS = -L. -lhl
 EXTRA_LFLAGS ?=
 LIBFLAGS =
@@ -50,6 +50,7 @@ LIB = ${PCRE} ${RUNTIME} ${STD}
 BOOT = src/_main.o
 
 UNAME := $(shell uname)
+UNAME_M := $(shell uname -m)
 
 # Cygwin
 ifeq ($(OS),Windows_NT)
@@ -57,6 +58,11 @@ ifeq ($(OS),Windows_NT)
 LIBFLAGS += -Wl,--export-all-symbols
 LIBEXT = dll
 RELEASE_NAME=win
+
+# Add sse flags for i386 and x86_64
+ifneq (,$(filter $(UNAME_M),x86_64 i386))
+CFLAGS += -msse2 -mfpmath=sse
+endif
 
 ifeq ($(MARCH),32)
 CC=i686-pc-cygwin-gcc
@@ -66,6 +72,12 @@ else ifeq ($(UNAME),Darwin)
 
 # Mac
 LIBEXT=dylib
+
+# Add sse flags for i386 and x86_64
+ifneq (,$(filter $(UNAME_M),x86_64 i386))
+CFLAGS += -msse2 -mfpmath=sse
+endif
+
 CFLAGS += -m$(MARCH) -I /usr/local/include -I /usr/local/opt/libjpeg-turbo/include -I /usr/local/opt/jpeg-turbo/include -I /usr/local/opt/sdl2/include/SDL2 -I /usr/local/opt/libvorbis/include -I /usr/local/opt/openal-soft/include -Dopenal_soft  -DGL_SILENCE_DEPRECATION
 LFLAGS += -Wl,-export_dynamic -L/usr/local/lib
 
@@ -81,9 +93,11 @@ LIBOPENAL = -lopenal
 LIBSSL = -framework Security -framework CoreFoundation
 RELEASE_NAME = osx
 
-# Mac native debug
+# Mac native debug on i386 and x86_64 only
+ifneq (,$(filter $(UNAME_M),x86_64 i386))
 HL_DEBUG = include/mdbg/mdbg.o include/mdbg/mach_excServer.o include/mdbg/mach_excUser.o
 LIB += ${HL_DEBUG}
+endif
 
 else
 
